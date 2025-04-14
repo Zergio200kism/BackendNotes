@@ -1,0 +1,11 @@
+
+GET http://localhost:3001/api/notes
+// Los 3 # son para separar las peticiones http
+###
+POST http://localhost:3001/api/notes
+Content-Type: application/json
+
+{
+    "content":"Hola",
+    "important":true
+}
