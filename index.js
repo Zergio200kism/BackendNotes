@@ -1,6 +1,11 @@
 //Con express
 const express = require('express')
 const app = express()
+const morgan=require('morgan')
+morgan.token('body', (req) => {
+    return req.method === 'POST' ? JSON.stringify(req.body) : ''
+  })
+app.use(morgan(':method :url :status :res[content-length] - :response-time ms :body'))
 
 const cors=require('cors')
 
@@ -13,8 +18,21 @@ app.use(cors())
 // express.json() es un middleware.
 // Se encarga de leer el body en formato JSON y convertirlo en un objeto JS automáticamente en request.body.
 // Sin él, request.body será undefined en una POST que envíe JSON.
-app.use(express.json())
 
+
+const requestLogger = (request,response,next) =>{
+    console.log('Method:', request.method)
+    console.log('Path:  ', request.path)
+    console.log('Body:  ', request.body)
+    console.log('---')
+    next()   
+}
+
+const unknownEndpoint= (request,response)=>{
+    response.status(404).send({error:'unknown Endpoint'})
+}
+app.use(express.json())
+app.use(requestLogger)
 
 let notes = [
     {
@@ -94,6 +112,8 @@ app.post('/api/notes', (request, response) => {
   
     response.json(note)
 })
+
+app.use(unknownEndpoint)
 
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
