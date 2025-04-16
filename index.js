@@ -2,6 +2,7 @@
 const express = require('express')
 const app = express()
 const morgan=require('morgan')
+app.use(express.static('dist'))
 morgan.token('body', (req) => {
     return req.method === 'POST' ? JSON.stringify(req.body) : ''
   })
@@ -111,6 +112,15 @@ app.post('/api/notes', (request, response) => {
     notes = notes.concat(note)
   
     response.json(note)
+})
+
+
+app.put(`/api/notes/:id`,(request,response)=>{
+    const id=request.params.id;
+    const body=request.body;
+    const index=notes.findIndex(person => person.id ==id)
+    notes[index]=body;
+    response.json(notes[index])
 })
 
 app.use(unknownEndpoint)
