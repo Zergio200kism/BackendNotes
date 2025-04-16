@@ -2,6 +2,13 @@
 const express = require('express')
 const app = express()
 
+const cors=require('cors')
+
+//Esta linea es importante para que nuestro front end pueda cominicarse con back end
+
+app.use(cors())
+
+
 //Para poder hacer mas facil las peticiones de tipo post
 // express.json() es un middleware.
 // Se encarga de leer el body en formato JSON y convertirlo en un objeto JS automáticamente en request.body.
@@ -88,7 +95,7 @@ app.post('/api/notes', (request, response) => {
     response.json(note)
 })
 
-const PORT = 3001
+const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
 })
