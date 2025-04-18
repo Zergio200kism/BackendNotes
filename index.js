@@ -1,6 +1,10 @@
 //Con express
+require('dotenv').config()
 const express = require('express')
+const Note = require('./models/note')
 const app = express()
+
+
 const morgan=require('morgan')
 app.use(express.static('dist'))
 morgan.token('body', (req) => {
@@ -35,6 +39,9 @@ const unknownEndpoint= (request,response)=>{
 app.use(express.json())
 app.use(requestLogger)
 
+
+
+/*
 let notes = [
     {
         "id": "1",
@@ -56,14 +63,14 @@ let notes = [
         "content": "GET and POST are the most important methods of HTTP protocol",
         "important": true
       }
-]
+]*/
 
 app.get('/', (request, response) => {
   response.send('<h1>Hello World!</h1>')
 })
 
 app.get('/api/notes', (request, response) => {
-  response.json(notes)
+  Note.find({}).then(notes=> response.json(notes)) 
 })
 
 app.get('/api/notes/:id',(request,response) =>{
