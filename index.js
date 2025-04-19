@@ -28,11 +28,13 @@ const requestLogger = (request,response,next) =>{
   next()   
 }
 //Usamos el middleware
-app.use(requestLogger)
+
 // express.json() es un middleware.
 // Se encarga de leer el body en formato JSON y convertirlo en un objeto JS automáticamente en request.body.
 // Sin él, request.body será undefined en una POST que envíe JSON.
 app.use(express.json())
+//Usamos el middleware
+app.use(requestLogger)
 app.use(express.static('dist'))
 
 //Este es otro middleware
@@ -56,20 +58,28 @@ app.get('/api/notes', (request, response) => {
   Note.find({}).then(notes=> response.json(notes)) 
 })
 
-app.get('/api/notes/:id',(request,response) =>{
+app.get('/api/notes/:id',(request,response,next) =>{
         const id= request.params.id
         //const note=notes.find(note=> note.id === id)
-        const note=Note.findById(id).then(note => response.json(note)).catch(error => {
-          response.status(400).send({ error: 'malformatted id' })
-        })
+        const note=Note.findById(id).then(note => 
+            { 
+                if (note) {
+                  response.json(note)
+                } else {
+                  response.status(404).send({ error: 'malformatted id' })
+                }
+            } 
+        
+        ).catch(error => next(error))
     }
 )
-app.post('/api/notes', (request, response) => {
+app.post('/api/notes', (request, response,next) => {
   const body = request.body
 
-  if (!body.content) {
-    return response.status(400).json({ error: 'content missing' })
-  }
+  //Ya no hace falta por ya lo validamos con mongoose en note.js
+  // if (!body.content) {
+  //   return response.status(400).json({ error: 'content missing' })
+  // }
 
   const note = new Note({
     content: body.content,
@@ -78,53 +88,84 @@ app.post('/api/notes', (request, response) => {
 
   note.save().then((savedNote) => {
     response.json(savedNote)
-  })
+  }).catch(error=> next(error))
 })
 
-app.delete('/api/notes/:id',async (request,response)=>{
-    const id=request.params.id
+// PRIMERA FORMA DE BORRAR UN REGISTRO,HECHO POR FULLSTACKOPEN
+app.delete('/api/notes/:id', (request, response, next) => {
+  Note.findByIdAndDelete(request.params.id)
+    .then(result => {
+      response.status(204).end()
+    })
+    .catch(error => next(error))
+})
 
-    try {
-      const result = await Note.deleteOne({ _id: id });
+// SEGUNDA FORMA DE BORRAR UN REGISTRO,HECHO POR CHATGPT
+// app.delete('/api/notes/:id',async (request,response)=>{
+//     const id=request.params.id
+
+//     try {
+//       const result = await Note.deleteOne({ _id: id });
   
-      if (result.deletedCount === 1) {
-        response.json({exito:"Elemento eliminado con exito"}); // ✅ Eliminado con éxito, sin contenido
-      } else {
-        response.status(404).send({ error: 'Note not found' }); // ❌ No se encontró el documento
+//       if (result.deletedCount === 1) {
+//         response.json({exito:"Elemento eliminado con exito"}); // ✅ Eliminado con éxito, sin contenido
+//       } else {
+//         response.status(404).send({ error: 'Note not found' }); // ❌ No se encontró el documento
+//       }
+//     } catch (error) {
+//       next(error) // ⚠️ ID inválido
+//     }
+// })
+
+//Primera forma de actualizar un registro,hecha por fullstackopen
+app.put('/api/notes/:id', (request, response, next) => {
+  const { content, important } = request.body
+
+  Note.findById(request.params.id)
+    .then(note => {
+      if (!note) {
+        return response.status(404).end()
       }
-    } catch (error) {
-      response.status(400).send({ error: 'Malformatted id' }); // ⚠️ ID inválido
-    }
+
+      note.content = content
+      note.important = important
+
+      return note.save().then((updatedNote) => {
+        response.json(updatedNote)
+      })
+    })
+    .catch(error => next(error))
 })
 
-app.put('/api/notes/:id', async (request, response) => {
-  const id = request.params.id;
-  const body = request.body;
+//Segunda forma de actualizar un registro, hecha por chatgpt
+// app.put('/api/notes/:id', async (request, response) => {
+//   const id = request.params.id;
+//   const body = request.body;
 
-  try {
-    const updatedNote = await Note.findByIdAndUpdate(
-      id,
-      {
-        content: body.content,
-        important: body.important,
-      },
-      {
-        new: true,            // <- Retorna el documento ya actualizado
-        runValidators: true,  // <- Ejecuta validaciones definidas en el esquema
-        context: 'query'      // <- Necesario para algunas validaciones
-      }
-    );
+//   try {
+//     const updatedNote = await Note.findByIdAndUpdate(
+//       id,
+//       {
+//         content: body.content,
+//         important: body.important,
+//       },
+//       {
+//         new: true,            // <- Retorna el documento ya actualizado
+//         runValidators: true,  // <- Ejecuta validaciones definidas en el esquema
+//         context: 'query'      // <- Necesario para algunas validaciones
+//       }
+//     );
 
-    if (updatedNote) {
-      response.json(updatedNote);
-    } else {
-      response.status(404).send({ error: 'Note not found' });
-    }
-  } catch (error) {
-    console.error(error);
-    response.status(400).send({ error: 'Malformatted ID or validation error' });
-  }
-});
+//     if (updatedNote) {
+//       response.json(updatedNote);
+//     } else {
+//       response.status(404).send({ error: 'Note not found' });
+//     }
+//   } catch (error) {
+//     console.error(error);
+//     response.status(400).send({ error: 'Malformatted ID or validation error' });
+//   }
+// });
 
 
 app.put(`/api/notes/:id`,(request,response)=>{
@@ -135,7 +176,23 @@ app.put(`/api/notes/:id`,(request,response)=>{
     response.json(notes[index])
 })
 
+
+
 app.use(unknownEndpoint)
+
+const errorHandler = (error, request, response, next) => {
+  console.error(error.name,'-',error)
+  if (error.name === 'CastError') {
+    return response.status(400).send({ error: 'malformatted id' })
+  } else if(error.name === 'ValidationError'){
+    return response.status(400).json({error:error.message})
+  }
+ 
+  next(error)
+}
+
+// this has to be the last loaded middleware, also all the routes should be registered before this!
+app.use(errorHandler)
 
 const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {

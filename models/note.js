@@ -13,7 +13,10 @@ mongoose.connect(url).then(result => {
   })
 
 const noteSchema = new mongoose.Schema({
-  content: String,
+  content: {
+    type:String,
+    required:true
+  },
   important: Boolean,
 })
 
