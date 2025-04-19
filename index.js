@@ -1,5 +1,4 @@
 //Con express
-
 //Para acceder a las variables del archivo .env  Solo hace falta ejecutarlo una vez
 require('dotenv').config()
 
