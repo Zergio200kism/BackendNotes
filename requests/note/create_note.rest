@@ -1,0 +1,8 @@
+POST http://localhost:3001/api/notes
+Content-Type: application/json
+
+{
+  "content": "Contenido aleatorio",
+  "important": true,
+  "userId":"680559b6749a4d15b31ea979"
+}
